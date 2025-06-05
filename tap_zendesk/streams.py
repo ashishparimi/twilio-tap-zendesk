@@ -26,6 +26,7 @@ CUSTOM_TYPES = {
     'decimal': 'number',
     'checkbox': 'boolean',
     'lookup': 'integer',
+    'multiselect': 'array',
 }
 
 DEFAULT_SEARCH_WINDOW_SIZE = (60 * 60 * 24) * 30 # defined in seconds, default to a month (30 days)
@@ -51,20 +52,39 @@ def process_custom_field(field):
     """ Take a custom field description and return a schema for it. """
     zendesk_type = field.type
     json_type = CUSTOM_TYPES.get(zendesk_type)
+    
+    # If type is unknown, create a schema that supports all possible types
     if json_type is None:
-        raise Exception("Discovered unsupported type for custom field {} (key: {}): {}"
+        LOGGER.warning("Discovered unsupported type for custom field {} (key: {}): {}. Using flexible type schema."
                         .format(field.title,
                                 field.key,
                                 zendesk_type))
-    field_schema = {'type': [
-        json_type,
-        'null'
-    ]}
+        field_schema = {
+            'type': [
+                'null',
+                'string',
+                'integer',
+                'number',
+                'boolean',
+                'array',
+                'object'
+            ]
+        }
+    else:
+        field_schema = {'type': [
+            json_type,
+            'null'
+        ]}
 
+    # Add format for date fields
     if zendesk_type == 'date':
         field_schema['format'] = 'datetime'
-    if zendesk_type == 'dropdown':
-        field_schema['enum'] = [o.value for o in field.custom_field_options]
+    
+    # Handle multiselect fields
+    if zendesk_type == 'multiselect':
+        field_schema['items'] = {'type': ['null', 'string']}
+        if hasattr(field, 'custom_field_options') and field.custom_field_options:
+            field_schema['items']['enum'] = [o.value for o in field.custom_field_options]
 
     return field_schema
 

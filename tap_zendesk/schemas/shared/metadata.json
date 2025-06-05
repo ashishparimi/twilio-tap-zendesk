@@ -4,7 +4,13 @@
     "object"
   ],
   "properties": {
-    "custom": {},
+    "custom": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "additionalProperties": true
+    },
     "trusted": {
       "type": [
         "null",
