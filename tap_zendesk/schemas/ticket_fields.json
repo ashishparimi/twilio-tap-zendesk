@@ -183,7 +183,17 @@
         "null",
         "array"
       ],
-      "items": {}
+      "items": {
+        "type": [
+          "null",
+          "string",
+          "integer",
+          "number",
+          "boolean",
+          "array",
+          "object"
+        ]
+      }
     },
     "sub_type_id": {
       "type": [

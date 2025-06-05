@@ -1,5 +1,5 @@
 import tap_tester.menagerie   as menagerie
-
+import singer
 from base import ZendeskTest
 
 class ZendeskCustomFieldsDiscover(ZendeskTest):
@@ -17,8 +17,26 @@ class ZendeskCustomFieldsDiscover(ZendeskTest):
         # Loop over them
         for schema in schemas:
             properties = schema[1]['annotated-schema']['properties']
+            fields_properties = properties.get('{}_fields'.format(schema[0]), {}).get('properties', {})
+            
             # Ensure that "organization_fields" or "user_fields" are objects in the annotated schema
             # with their own set of properties
-            self.assertIsNotNone(properties.get('{}_fields'.format(schema[0]), {}).get('properties'),
-                                 msg='{}_fields not present in schema!'.format(schema[0]))
+            self.assertIsNotNone(fields_properties,
+                                msg='{}_fields not present in schema!'.format(schema[0]))
+            
+            # Verify that all custom fields have valid types
+            for field_name, field_schema in fields_properties.items():
+                # Check that the field has a type property
+                self.assertIn('type', field_schema, 
+                            msg=f'Field {field_name} missing type definition')
+                
+                # Verify that the type is either a string or array (for multiselect)
+                field_type = field_schema['type']
+                if isinstance(field_type, list):
+                    # For fields that can be null
+                    self.assertTrue(any(t in ['string', 'array', 'integer', 'number', 'boolean'] for t in field_type),
+                                  msg=f'Field {field_name} has invalid type: {field_type}')
+                else:
+                    self.assertIn(field_type, ['string', 'array', 'integer', 'number', 'boolean'],
+                                msg=f'Field {field_name} has invalid type: {field_type}')
 
